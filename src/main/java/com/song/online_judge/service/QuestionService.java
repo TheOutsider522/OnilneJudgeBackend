@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.song.online_judge.model.dto.question.QuestionQueryRequest;
 import com.song.online_judge.model.entity.Question;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.song.online_judge.model.entity.User;
 import com.song.online_judge.model.vo.QuestionVO;
 
 import javax.servlet.http.HttpServletRequest;
@@ -36,10 +37,10 @@ public interface QuestionService extends IService<Question> {
      * 获取题目封装
      *
      * @param question
-     * @param request
+     * @param loginUser
      * @return
      */
-    QuestionVO getQuestionVO(Question question, HttpServletRequest request);
+    QuestionVO getQuestionVO(Question question, User loginUser);
 
     /**
      * 分页获取题目封装

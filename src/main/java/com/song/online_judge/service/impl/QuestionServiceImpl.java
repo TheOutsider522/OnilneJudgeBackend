@@ -26,19 +26,20 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
-* @author TheOutsider
-* @description 针对表【question(题目)】的数据库操作Service实现
-* @createDate 2024-04-12 18:09:38
-*/
+ * @author TheOutsider
+ * @description 针对表【question(题目)】的数据库操作Service实现
+ * @createDate 2024-04-12 18:09:38
+ */
 @Service
 public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
-    implements QuestionService{
+        implements QuestionService {
 
     @Resource
     private UserService userService;
 
     /**
      * 校验题目是否合法
+     *
      * @param question
      * @param add
      */
@@ -115,7 +116,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
     }
 
     @Override
-    public QuestionVO getQuestionVO(Question question, HttpServletRequest request) {
+    public QuestionVO getQuestionVO(Question question, User loginUser) {
         QuestionVO questionVO = QuestionVO.objToVo(question);
         long questionId = question.getId();
         // 1. 关联查询用户信息
@@ -129,17 +130,38 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
         return questionVO;
     }
 
+    /**
+     * 将分页的题目列表转为分页的题目封装类列表
+     * 1. Question -> QuestionVO
+     * 2. 主要填充 UserVo 信息
+     * 在为每一个QuestionVO设置UserVo中, 暂时想到两种方法
+     * 1. 循环遍历列表, 在循环中根据每个题目的用户id查询并设置UserVo
+     * 2. 根据题目列表中的用户id, 批量查询用户, 并按用户id分组, 然后填充UserVo信息
+     * 第1种方法的问题在于, 数据库操作写在了循环中, 次数过多, 性能较低
+     * @param questionPage
+     * @param request
+     * @return
+     */
     @Override
     public Page<QuestionVO> getQuestionVOPage(Page<Question> questionPage, HttpServletRequest request) {
-        List<Question> questionList = questionPage.getRecords();
+        // 创建封装类的分页对象
         Page<QuestionVO> questionVOPage = new Page<>(questionPage.getCurrent(), questionPage.getSize(), questionPage.getTotal());
+
+        // 获取题目列表
+        List<Question> questionList = questionPage.getRecords();
         if (CollUtil.isEmpty(questionList)) {
             return questionVOPage;
         }
-        // 1. 关联查询用户信息
+
+        /**
+         * 关联查询用户信息
+         */
+        // 获取所有题目的用户id
         Set<Long> userIdSet = questionList.stream().map(Question::getUserId).collect(Collectors.toSet());
+        // 根据用户id批量查询用户, 并根据用户id分组
         Map<Long, List<User>> userIdUserListMap = userService.listByIds(userIdSet).stream()
                 .collect(Collectors.groupingBy(User::getId));
+
         // 填充信息
         List<QuestionVO> questionVOList = questionList.stream().map(question -> {
             QuestionVO questionVO = QuestionVO.objToVo(question);
@@ -151,6 +173,8 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
             questionVO.setUserVO(userService.getUserVO(user));
             return questionVO;
         }).collect(Collectors.toList());
+
+        // 将封装类列表填充到新的分页对象中
         questionVOPage.setRecords(questionVOList);
         return questionVOPage;
     }

@@ -8,6 +8,7 @@ import lombok.Data;
 import org.springframework.beans.BeanUtils;
 
 import java.io.Serializable;
+import java.util.Date;
 import java.util.List;
 
 @Data
@@ -61,6 +62,12 @@ public class QuestionVO implements Serializable {
     private Integer favourNum;
 
     /**
+     * 创建时间
+     */
+    private Date createTime;
+
+
+    /**
      * 创建用户 id
      */
     private Long userId;
@@ -107,8 +114,9 @@ public class QuestionVO implements Serializable {
         }
         QuestionVO questionVO = new QuestionVO();
         BeanUtils.copyProperties(question, questionVO);
+        // 标签
         questionVO.setTags(JSONUtil.toList(question.getTags(), String.class));
-
+        // 判题配置
         String judgeConfig = question.getJudgeConfig();
         questionVO.setJudgeConfig(JSONUtil.toBean(judgeConfig, JudgeConfig.class));
         return questionVO;

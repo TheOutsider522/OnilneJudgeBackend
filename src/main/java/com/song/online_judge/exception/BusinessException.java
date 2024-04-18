@@ -5,8 +5,6 @@ import com.song.online_judge.common.ErrorCode;
 /**
  * 自定义异常类
  *
- * @author <a href="https://github.com/lisong">程序员鱼皮</a>
- * @from <a href="https://song.icu">编程导航知识星球</a>
  */
 public class BusinessException extends RuntimeException {
 

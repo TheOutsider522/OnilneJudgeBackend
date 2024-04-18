@@ -8,6 +8,9 @@ import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.song.online_judge.model.dto.question.JudgeCase;
+import com.song.online_judge.model.dto.question.JudgeConfig;
 import lombok.Data;
 
 /**
@@ -98,14 +101,40 @@ public class Question implements Serializable {
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 
+
+    // region 关于标签、判题配置、判题用例的转换语法糖
+
     public void setTagsByList(List<String> tagsList) {
         if (CollUtil.isNotEmpty(tagsList)) {
             this.tags = JSONUtil.toJsonStr(tagsList);
         }
     }
-
+    @JsonIgnore
     public List<String> getTagsList() {
         return JSONUtil.toList(JSONUtil.parseArray(this.tags), String.class);
     }
 
+    public void setJudgeConfigByObject(JudgeConfig judgeConfig) {
+        if (judgeConfig != null) {
+            this.judgeConfig = JSONUtil.toJsonStr(judgeConfig);
+        }
+    }
+
+    @JsonIgnore
+    public JudgeConfig getJudgeConfigToObject() {
+        return JSONUtil.toBean(JSONUtil.parseObj(this.judgeConfig), JudgeConfig.class);
+    }
+
+    public void setJudgeCaseByList(List<JudgeCase> judgeCaseList) {
+        if (CollUtil.isNotEmpty(judgeCaseList)) {
+            this.judgeCase = JSONUtil.toJsonStr(judgeCaseList);
+        }
+    }
+
+    @JsonIgnore
+    public List<JudgeCase> getJudgeCaseToObject() {
+        return JSONUtil.toList(JSONUtil.parseArray(this.judgeCase), JudgeCase.class);
+    }
+
+    // endregion
 }
