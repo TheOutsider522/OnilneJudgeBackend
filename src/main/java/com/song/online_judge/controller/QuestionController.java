@@ -11,10 +11,15 @@ import com.song.online_judge.constant.UserConstant;
 import com.song.online_judge.exception.BusinessException;
 import com.song.online_judge.exception.ThrowUtils;
 import com.song.online_judge.model.dto.question.*;
+import com.song.online_judge.model.dto.questionsubmit.QuestionSubmitAddRequest;
+import com.song.online_judge.model.dto.questionsubmit.QuestionSubmitQueryRequest;
 import com.song.online_judge.model.entity.Question;
+import com.song.online_judge.model.entity.QuestionSubmit;
 import com.song.online_judge.model.entity.User;
+import com.song.online_judge.model.vo.QuestionSubmitVO;
 import com.song.online_judge.model.vo.QuestionVO;
 import com.song.online_judge.service.QuestionService;
+import com.song.online_judge.service.QuestionSubmitService;
 import com.song.online_judge.service.UserService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -39,6 +44,9 @@ public class QuestionController {
     private QuestionService questionService;
 
     @Resource
+    private QuestionSubmitService questionSubmitService;
+
+    @Resource
     private UserService userService;
 
     // region 增删改查
@@ -47,7 +55,7 @@ public class QuestionController {
      * 创建题目
      *
      * @param questionAddRequest 题目添加实体类
-     * @param request 请求
+     * @param request            请求
      * @return 题目id
      */
     @PostMapping("/add")
@@ -201,8 +209,7 @@ public class QuestionController {
     public BaseResponse<Page<Question>> listQuestionByPage(@RequestBody QuestionQueryRequest questionQueryRequest) {
         long current = questionQueryRequest.getCurrent();
         long size = questionQueryRequest.getPageSize();
-        Page<Question> questionPage = questionService.page(new Page<>(current, size),
-                questionService.getQueryWrapper(questionQueryRequest));
+        Page<Question> questionPage = questionService.page(new Page<>(current, size), questionService.getQueryWrapper(questionQueryRequest));
         return ResultUtils.success(questionPage);
     }
 
@@ -215,8 +222,7 @@ public class QuestionController {
      */
     @PostMapping("/list/page/vo")
     @ApiOperation("分页获取题目列表(封装类)")
-    public BaseResponse<Page<QuestionVO>> listQuestionVOByPage(@RequestBody QuestionQueryRequest questionQueryRequest,
-                                                               HttpServletRequest request) {
+    public BaseResponse<Page<QuestionVO>> listQuestionVOByPage(@RequestBody QuestionQueryRequest questionQueryRequest, HttpServletRequest request) {
         long current = questionQueryRequest.getCurrent();
         long size = questionQueryRequest.getPageSize();
 
@@ -224,8 +230,7 @@ public class QuestionController {
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
 
         // 分页查询并返回封装类结果
-        Page<Question> questionPage = questionService.page(new Page<>(current, size),
-                questionService.getQueryWrapper(questionQueryRequest));
+        Page<Question> questionPage = questionService.page(new Page<>(current, size), questionService.getQueryWrapper(questionQueryRequest));
         return ResultUtils.success(questionService.getQuestionVOPage(questionPage, request));
     }
 
@@ -238,8 +243,7 @@ public class QuestionController {
      */
     @PostMapping("/my/list/page/vo")
     @ApiOperation("分页获取当前用户创建的题目列表(封装类)")
-    public BaseResponse<Page<QuestionVO>> listMyQuestionVOByPage(@RequestBody QuestionQueryRequest questionQueryRequest,
-                                                                 HttpServletRequest request) {
+    public BaseResponse<Page<QuestionVO>> listMyQuestionVOByPage(@RequestBody QuestionQueryRequest questionQueryRequest, HttpServletRequest request) {
         if (questionQueryRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -249,8 +253,7 @@ public class QuestionController {
         long size = questionQueryRequest.getPageSize();
         // 限制爬虫
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
-        Page<Question> questionPage = questionService.page(new Page<>(current, size),
-                questionService.getQueryWrapper(questionQueryRequest));
+        Page<Question> questionPage = questionService.page(new Page<>(current, size), questionService.getQueryWrapper(questionQueryRequest));
         return ResultUtils.success(questionService.getQuestionVOPage(questionPage, request));
     }
 
@@ -298,4 +301,46 @@ public class QuestionController {
         return ResultUtils.success(result);
     }
 
+    // region 题目提交相关
+
+    /**
+     * 提交题目
+     *
+     * @param questionSubmitAddRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/question_submit/do")
+    @ApiOperation("提交题目")
+    public BaseResponse<Long> doQuestionSubmit(@RequestBody QuestionSubmitAddRequest questionSubmitAddRequest, HttpServletRequest request) {
+        if (questionSubmitAddRequest == null || questionSubmitAddRequest.getQuestionId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 登录才能点赞
+        final User loginUser = userService.getLoginUser(request);
+        long questionSubmitId = questionSubmitService.doQuestionSubmit(questionSubmitAddRequest, loginUser);
+        return ResultUtils.success(questionSubmitId);
+    }
+
+    /**
+     * 分页获取题目提交列表
+     *
+     * @param questionSubmitQueryRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/question_submit/list/page")
+    @ApiOperation("分页获取题目提交列表")
+    public BaseResponse<Page<QuestionSubmitVO>> listQuestionSubmitByPage(@RequestBody QuestionSubmitQueryRequest questionSubmitQueryRequest, HttpServletRequest request) {
+        int current = questionSubmitQueryRequest.getCurrent();
+        int pageSize = questionSubmitQueryRequest.getPageSize();
+
+        Page<QuestionSubmit> pageResult = questionSubmitService.page(new Page<>(current, pageSize), questionSubmitService.getQueryWrapper(questionSubmitQueryRequest));
+
+        Page<QuestionSubmitVO> questionSubmitVOPage = questionSubmitService.getQuestionSubmitVOPage(pageResult, userService.getLoginUser(request));
+
+        return ResultUtils.success(questionSubmitVOPage);
+    }
+
+    // endregion
 }

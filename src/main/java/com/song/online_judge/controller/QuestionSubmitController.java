@@ -30,6 +30,7 @@ import javax.servlet.http.HttpServletRequest;
 @RequestMapping("/question_submit")
 @Slf4j
 @Api(tags = "题目提交接口")
+@Deprecated
 public class QuestionSubmitController {
 
     @Resource

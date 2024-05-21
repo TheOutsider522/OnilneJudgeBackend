@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.song.online_judge.common.ErrorCode;
 import com.song.online_judge.constant.CommonConstant;
 import com.song.online_judge.exception.BusinessException;
+import com.song.online_judge.judge.JudgeService;
 import com.song.online_judge.model.dto.questionsubmit.QuestionSubmitAddRequest;
 import com.song.online_judge.model.dto.questionsubmit.QuestionSubmitQueryRequest;
 import com.song.online_judge.model.entity.Question;
@@ -22,6 +23,7 @@ import com.song.online_judge.service.QuestionSubmitService;
 import com.song.online_judge.mapper.QuestionSubmitMapper;
 import com.song.online_judge.service.UserService;
 import com.song.online_judge.utils.SqlUtils;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
@@ -30,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
@@ -47,12 +50,16 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
     @Resource
     private UserService userService;
 
+    @Resource
+    @Lazy
+    private JudgeService judgeService;
+
     /**
-     * 提交提交题目
+     * 提交题目
      *
      * @param questionSubmitAddRequest
      * @param loginUser
-     * @return
+     * @return 提交记录的id
      */
     @Override
     public long doQuestionSubmit(QuestionSubmitAddRequest questionSubmitAddRequest, User loginUser) {
@@ -72,20 +79,22 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
 
         // 是否已提交题目
         long userId = loginUser.getId();
-        QuestionSubmit questionThumb = new QuestionSubmit();
-        questionThumb.setUserId(userId);
-        questionThumb.setQuestionId(questionId);
-        questionThumb.setCode(questionSubmitAddRequest.getCode());
-        questionThumb.setLanguage(language);
-        questionThumb.setStatus(QuestionSubmitStatusEnum.WAITING.getValue());
-        questionThumb.setJudgeInfo("{}");
+        QuestionSubmit questionSubmit = new QuestionSubmit();
+        questionSubmit.setUserId(userId);
+        questionSubmit.setQuestionId(questionId);
+        questionSubmit.setCode(questionSubmitAddRequest.getCode());
+        questionSubmit.setLanguage(language);
+        questionSubmit.setStatus(QuestionSubmitStatusEnum.WAITING.getValue());
+        questionSubmit.setJudgeInfo("{}");
 
-        boolean save = this.save(questionThumb);
+        boolean save = this.save(questionSubmit);
         if (!save) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR);
         }
 
-        return questionThumb.getId();
+        // todo 执行判题业务
+        CompletableFuture.runAsync(() -> judgeService.doJudge(questionSubmit.getId()));
+        return questionSubmit.getId();
     }
 
     /**
